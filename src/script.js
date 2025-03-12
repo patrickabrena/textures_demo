@@ -22,7 +22,7 @@ const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
 const cylinderGeometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32)
 
 //init the texture
-const textureTest = textureLoader.load();
+const textureTest = textureLoader.load('public/space-cruiser-panels2-bl/space-cruiser-panels2_albedo.png');
 //create a path variable to store path of the texture
 
 
@@ -52,7 +52,7 @@ plane.material.side = THREE.DoubleSide
 //rotating the plane about the x axis
 plane.rotation.x = Math.PI * 0.5 // Pi is 180 degrees so to rotate it flat we need half
 //setting the scale next
-plane.scale.set(100, 100)
+plane.scale.set(10, 10)
 const sphere = new THREE.Mesh();
 sphere.geometry = sphereGeometry;
 sphere.material = material;
@@ -89,8 +89,8 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   200
 );
-camera.position.z = 5;
-camera.position.y = 1;
+camera.position.z = 25;
+camera.position.y = 15;
 
 // initialize the renderer
 const canvas = document.querySelector("canvas.threejs");
