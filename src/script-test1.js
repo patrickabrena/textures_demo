@@ -77,7 +77,7 @@ window.addEventListener("resize", () => {
 });
 
 // Mouse & Touch Controls for Rotation
-function startDragging(event) {
+const startDragging = (event) => {
     // Normalize mouse position
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -94,27 +94,27 @@ function startDragging(event) {
         previousMousePosition.x = event.clientX;
         previousMousePosition.y = event.clientY;
     }
-}
+};
 
-function stopDragging() {
+const stopDragging = () => {
     isDragging = false;
     inertiaActive = true;
     applyInertia();
-}
+};
 
-function handleDrag(event) {
+const handleDrag = (event) => {
     if (!isDragging || !pivot) return;
 
-    let deltaX = event.clientX - previousMousePosition.x;
-    let deltaY = event.clientY - previousMousePosition.y;
+    const deltaX = event.clientX - previousMousePosition.x;
+    const deltaY = event.clientY - previousMousePosition.y;
 
     // Calculate rotation speed (adjust sensitivity if needed)
     rotationSpeedX = deltaY * 0.002;
     rotationSpeedY = deltaX * 0.002;
 
     // Convert delta rotation into a quaternion to avoid gimbal lock
-    let quaternionX = new THREE.Quaternion();
-    let quaternionY = new THREE.Quaternion();
+    const quaternionX = new THREE.Quaternion();
+    const quaternionY = new THREE.Quaternion();
 
     // Rotate around the Y-axis (left/right dragging)
     quaternionY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotationSpeedY);
@@ -129,13 +129,13 @@ function handleDrag(event) {
     // Update previous mouse position
     previousMousePosition.x = event.clientX;
     previousMousePosition.y = event.clientY;
-}
+};
 
-function handleTouch(event) {
+const handleTouch = (event) => {
     if (!isDragging || !pivot) return;
 
-    let deltaX = event.touches[0].clientX - previousMousePosition.x;
-    let deltaY = event.touches[0].clientY - previousMousePosition.y;
+    const deltaX = event.touches[0].clientX - previousMousePosition.x;
+    const deltaY = event.touches[0].clientY - previousMousePosition.y;
 
     rotationSpeedX = deltaY * 0.002;
     rotationSpeedY = deltaX * 0.002;
@@ -145,7 +145,7 @@ function handleTouch(event) {
 
     previousMousePosition.x = event.touches[0].clientX;
     previousMousePosition.y = event.touches[0].clientY;
-}
+};
 
 // Mouse Events
 window.addEventListener("mousedown", startDragging);
@@ -160,8 +160,8 @@ window.addEventListener("touchend", stopDragging);
 window.addEventListener("touchmove", handleTouch);
 
 // Apply Inertia (Smooth Rotation After Release)
-function applyInertia() {
-    if (!inertiaActive || Math.abs(rotationSpeedX) < 0.0001 && Math.abs(rotationSpeedY) < 0.0001) {
+const applyInertia = () => {
+    if (!inertiaActive || (Math.abs(rotationSpeedX) < 0.0001 && Math.abs(rotationSpeedY) < 0.0001)) {
         inertiaActive = false; // Stop when speed is very low
         return;
     }
@@ -173,13 +173,13 @@ function applyInertia() {
     rotationSpeedY *= 0.99;
 
     requestAnimationFrame(applyInertia);
-}
+};
 
 // Animation Loop
-function renderLoop() {
+const renderLoop = () => {
     controls.update();
     renderer.render(scene, camera);
     requestAnimationFrame(renderLoop);
-}
+};
 
 renderLoop();
