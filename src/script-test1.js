@@ -77,22 +77,92 @@ window.addEventListener("resize", () => {
 });
 
 // Mouse & Touch Controls for Rotation
+//Function: startDragging(event)
+//This function is triggered when the user clicks or touches the screen.
+//it detects whether the mouse is interacting with the model and sets up the necessary variables for dragging
 const startDragging = (event) => {
+
+
+    
+    //The EVENT parameter is an object automatically passed by the event listener (mousedown, touchstart)
+    //It countains information about the mouse or touch event, such as:
+    //event.clientX: The X-coordinate of the mouse relative to the viewport
+    //event.clientY: The Y-coordinate of the mouse relative to the viewport
+    //Other details like button cliks, touch positions, etc
+
+    
     // Normalize mouse position
+    //converting the pixel coordinates to the Normalized Device Coordinates
+
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
+    //Three.js uses a Normalized Device Coordinate (NDC) system where:
+    //The X-axis ranges from -1(left) to +1(right)
+    //THe Y-axis ranges from -1(bottom) to +1(top)
+    //The Z-axis ranges from -1(near) to +1(far)
+
+    //clientX and clientY come from the event object, which is automatically passed into startDragging(event)
+    //The event object is created by the browser when a user clicks (mousedown), moves the mouse (mousemove), or interacts (touchstart)
+
+    //However, clientX and clientY use a pixel-based system, where:
+    //clientX = 0 means the LEFT EDGE of the window
+    //clientX = window.innerWidth means the RIGHT EDGE of the window
+    //clientY = 0 means the TOP of the window
+    //clientY = window.innerHeight means the BOTTOM of the window
+
+
+    //1. X-coordinate Conversion:
+    //mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    //(event.clientX / window.innerWidth): Converts clientX to a range of 0 to 1
+    //multiplying by 2 scales it to 0 to 2
+    //Subtracting 1 shifts to -1 to +1
+
+    //Example:
+    //If event.clientX = 0, then mouse.x = -1 (left edge)
+    //If event.clientX = window.innerWidth / 2, then mouse.x = 0 (center)
+    //If event.clientX = window.innerWidth, then mouse.x = +1 (right edge)
+
+    //2. Y-coordinate conversion:
+    //mouse.y = -(event.clientX / window.innerWidth) * 2 + 1;
+    //(event.clientY / window.innerHeight): convers clientY to a range of 0 to 1.
+    //Mutiplying by 2 scales it to 0 to 2
+    //adding 1 shifts it to -1 to +1, but we negate it with -()
+    //This is necessary because:
+    //In Css pixels, clientY = 0 is at the TOP
+    //in Three.js mouse.y = +1 is at the top.
+    //So, we invert the y-axis to match
+
+    //Example:
+    //If event.clientY = 0, then mouse.y = + 1 (top edge)
+    //If event.clientY = window.innerHeight / 2, then mouse.y = 0 (center)
+    //If event.clientY = window.innerHeight, then mouse.y = - 1 (bottom edge)
+
+
+
     // Update raycaster based on camera and mouse
     raycaster.setFromCamera(mouse, camera);
+    //This tells the Raycaster to cast a ray from the camera's position through the point on the screen where the mouse is located.
+    //Since mouse is now noamrlized, Three.js can determine the exact direction from the camera
+
 
     // Check if the ray intersects with the model
     const intersects = raycaster.intersectObject(model, true); // 'true' checks child meshes too
+    //raycaster.intersectObject(object, recursive): Checks if the ray hits the given object. 
+    //The true argument makes it recursive, meaningg it checks all child meshes inside the model
+
 
     if (intersects.length > 0) {
-        isDragging = true;
+        isDragging = true; // This enables dragging mode.//other parts ofthe code like handleDrag function will only run if isDragging is set to true.
+        //it affects the handeDrag(event)
+        //if if (!isDragging || !pivot) return;
+        //the code above ensures that dragging behaviour only happens when a valid drag starts
         inertiaActive = false; // Stop inertia when dragging starts
-        previousMousePosition.x = event.clientX;
-        previousMousePosition.y = event.clientY;
+        previousMousePosition.x = event.clientX; // stores the mouse's starting X position when the drag begins
+        //this allows us to calculate how much the mouse moves in handleDrag(event)
+        //we need this because wihtout storing the previous postiino, we wouldn't know how far the mouse moved between frames
+        previousMousePosition.y = event.clientY;//Stores the mouse's starting Y position when the drag begins
+        //we need this for the vertical rotation calculations in handleDrag(event)
     }
 };
 
