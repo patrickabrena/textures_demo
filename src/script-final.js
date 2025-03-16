@@ -139,9 +139,42 @@ window.addEventListener("mouseup", stopDragging);
 window.addEventListener("mousemove", handleDrag);
 
 // Touch Events
-window.addEventListener("touchstart", (event) => {
-    startDragging(event);
-});
+const handleTouch = (event) => {
+    if (event.touches.length === 1) {
+        const touch = event.touches[0];
+        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(model, true);
+
+        if (intersects.length > 0 && !isDragging) {
+            isDragging = true;
+            inertiaActive = false;
+            previousMousePosition.x = touch.clientX;
+            previousMousePosition.y = touch.clientY;
+        } else if (isDragging) {
+            const deltaX = touch.clientX - previousMousePosition.x;
+            const deltaY = touch.clientY - previousMousePosition.y;
+            
+            rotationSpeedX = deltaY * rotationConfig.rotationSpeedX * 0.002;
+            rotationSpeedY = deltaX * rotationConfig.rotationSpeedY * 0.002;
+            
+            const quaternionX = new THREE.Quaternion();
+            const quaternionY = new THREE.Quaternion();
+            quaternionY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotationSpeedY);
+            quaternionX.setFromAxisAngle(new THREE.Vector3(1, 0, 0), rotationSpeedX);
+            pivot.quaternion.multiplyQuaternions(quaternionY, pivot.quaternion);
+            pivot.quaternion.multiplyQuaternions(quaternionX, pivot.quaternion);
+            
+            previousMousePosition.x = touch.clientX;
+            previousMousePosition.y = touch.clientY;
+        }
+    }
+};
+
+// Add touch event listeners
+window.addEventListener("touchstart", startDragging);
 window.addEventListener("touchend", stopDragging);
 window.addEventListener("touchmove", handleTouch);
 
