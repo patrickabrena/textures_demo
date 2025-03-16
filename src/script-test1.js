@@ -203,6 +203,8 @@ const handleDrag = (event) => {
 
 const handleTouch = (event) => {
     if (!isDragging || !pivot) return;
+    //
+
 
     const deltaX = event.touches[0].clientX - previousMousePosition.x;
     const deltaY = event.touches[0].clientY - previousMousePosition.y;

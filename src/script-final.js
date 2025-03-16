@@ -1,90 +1,44 @@
-//code entire project from scratch with LOTS of comments
-
-//import the libraries that we need from the node_modules directory
+// Import required modules
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { shiftLeft } from "three/tsl";
 import { Pane } from "tweakpane";
 
-//init the scene
+// Create a Three.js scene
 const scene = new THREE.Scene();
-const sceneAxesHelper = new THREE.AxesHelper();
-scene.add(sceneAxesHelper)
 
+// Add an AxesHelper to visualize axis (useful for debugging)
+const sceneAxesHelper = new THREE.AxesHelper(3);
+scene.add(sceneAxesHelper);
 
-let model; // Declare model globally
-
-//init the model loader to load my glb
-const loader = new GLTFLoader();
-//Loading my glb
-loader.load('d12.glb', (gltf) => {
-    //console.log(gltf)
-    model = gltf.scene
-    
-    model.traverse((child) => {
-        if (child.isMesh) {
-            child.material = new THREE.MeshStandardMaterial({ color: 0x00ff00, roughness: 0.2, metalness: 0.8 }); // Green & shiny
-        }
-    });
-
-    model.rotation.y = Math.PI / 4; // Rotate 45 degrees
-
-
-    //test code for pivot on the model
-      // Create a parent pivot object
-      const pivot = new THREE.Object3D();
-      pivot.add(model); // Attach the model to the pivot
-      scene.add(pivot); // Add pivot to the scene
-  
-      model.position.set(0, 0, 0); // Make sure the model is centered in pivot
-
-
-
-    //scene.add(gltf.scene)
-    //console.log(gltf)
-
-})
-//trying to do it from scratch
-//https://threejs.org/docs/?q=GLTF#examples/en/loaders/GLTFLoader // read for the docs
-//https://www.youtube.com/watch?v=RSV7_f5dJhM // video on guy doing the texture load
-//
-
-////////////////////
-
-// Mouse-based rotation variables
+// Global variables
+let model, pivot;
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
+let inertiaActive = false;
+let rotationSpeedX = 0;
+let rotationSpeedY = 0;
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
-// Event listeners for mouse movement
-window.addEventListener('mousedown', (event) => {
-    isDragging = true;
-    previousMousePosition.x = event.clientX;
-    previousMousePosition.y = event.clientY;
+// Load GLB Model
+const loader = new GLTFLoader();
+loader.load("d12.glb", (gltf) => {
+    model = gltf.scene;
+    model.traverse((child) => {
+        if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({
+                color: 0x00ff00, roughness: 0.2, metalness: 0.8
+            });
+        }
+    });
+    pivot = new THREE.Object3D();
+    pivot.add(model);
+    scene.add(pivot);
+    model.position.set(0, 0, 0);
 });
 
-window.addEventListener('mouseup', () => {
-    isDragging = false;
-});
-
-window.addEventListener('mousemove', (event) => {
-    if (!isDragging || !model) return;
-
-    let deltaX = event.clientX - previousMousePosition.x;
-    let deltaY = event.clientY - previousMousePosition.y;
-
-    model.rotation.y += deltaX * 0.005; // Adjust speed if needed
-    model.rotation.x += deltaY * 0.005;
-
-    previousMousePosition.x = event.clientX;
-    previousMousePosition.y = event.clientY;
-});
-
-
-
-///////////////
-
-//some set up for the lighting
+// Lighting Setup
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
 scene.add(ambientLight);
 
@@ -92,57 +46,102 @@ const pointLight = new THREE.PointLight(0xffffff, 25);
 pointLight.position.set(0, 3, 5);
 scene.add(pointLight);
 
-//initialize the camera
-const camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    10000
-);
+// Camera Setup
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 3, 5);
 
-camera.position.z = 5;
-camera.position.y = 3;
-
-//setup the renderer
-//start by assigning the canvas html element to the "canvas" variable in this script-final.js
-//<canvas> element is where WebGL operates
-const canvas = document.querySelector("canvas.threejs")
-//set up the renderer
-//
-const renderer = new THREE.WebGLRenderer({
-    canvas: canvas,
-    antialias: true
-})
-//set renderer size and pixelratio
+// Renderer Setup
+const canvas = document.querySelector("canvas.threejs");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-// instantiate the controls
+// Orbit Controls (Disabled)
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
-controls.enabled = false; // This disables OrbitControls
+controls.enabled = false;
 
+// Handle Window Resize
 window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+});
 
+// Rotation Speed Settings (Configurable via Tweakpane)
+const rotationConfig = {
+    rotationSpeedX: 0.5,
+    rotationSpeedY: 0.5,
+};
 
+// Create Tweakpane GUI
+const pane = new Pane();
+pane.addBinding(rotationConfig, "rotationSpeedX", { min: 0.1, max: 0.9, step: 0.01 }).label = "Rotation Speed X";
+pane.addBinding(rotationConfig, "rotationSpeedY", { min: 0.1, max: 0.9, step: 0.01 }).label = "Rotation Speed Y";
 
-  const renderloop = () => {
+// Mouse Controls
+const startDragging = (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(model, true);
+    if (intersects.length > 0) {
+        isDragging = true;
+        inertiaActive = false;
+        previousMousePosition.x = event.clientX;
+        previousMousePosition.y = event.clientY;
+    }
+};
 
-    //issue with this is if my array of children from the parent mesh has alot to iterate through, it can cause problems.
-    //to solve this, create a group and instead of scene.children it would be group.children
-   //group.children.forEach((child) => {
-   //  if (child instanceof THREE.Mesh) {
-   //    child.rotation.y += 0.01
-   //  }
-   //})
-  
+const stopDragging = () => {
+    isDragging = false;
+    inertiaActive = true;
+    applyInertia();
+};
+
+const handleDrag = (event) => {
+    if (!isDragging || !pivot) return;
+    const deltaX = event.clientX - previousMousePosition.x;
+    const deltaY = event.clientY - previousMousePosition.y;
+    
+    rotationSpeedX = deltaY * rotationConfig.rotationSpeedX * 0.002;
+    rotationSpeedY = deltaX * rotationConfig.rotationSpeedY * 0.002;
+    
+    const quaternionX = new THREE.Quaternion();
+    const quaternionY = new THREE.Quaternion();
+    quaternionY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotationSpeedY);
+    quaternionX.setFromAxisAngle(new THREE.Vector3(1, 0, 0), rotationSpeedX);
+    pivot.quaternion.multiplyQuaternions(quaternionY, pivot.quaternion);
+    pivot.quaternion.multiplyQuaternions(quaternionX, pivot.quaternion);
+    previousMousePosition.x = event.clientX;
+    previousMousePosition.y = event.clientY;
+};
+
+// Apply Inertia Effect
+const applyInertia = () => {
+    if (!inertiaActive || (Math.abs(rotationSpeedX) < 0.0001 && Math.abs(rotationSpeedY) < 0.0001)) {
+        inertiaActive = false; // Stop when speed is very low
+        return;
+    }
+
+    pivot.rotation.y += rotationSpeedY;
+    pivot.rotation.x += rotationSpeedX;
+
+    rotationSpeedX *= 0.99; // Friction effect
+    rotationSpeedY *= 0.99;
+
+    requestAnimationFrame(applyInertia);
+};
+
+// Mouse Events
+window.addEventListener("mousedown", startDragging);
+window.addEventListener("mouseup", stopDragging);
+window.addEventListener("mousemove", handleDrag);
+
+// Animation Loop
+const renderLoop = () => {
     controls.update();
     renderer.render(scene, camera);
-    window.requestAnimationFrame(renderloop);
-  };
-  
-  renderloop();
+    requestAnimationFrame(renderLoop);
+};
+renderLoop();
