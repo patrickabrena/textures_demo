@@ -138,6 +138,13 @@ window.addEventListener("mousedown", startDragging);
 window.addEventListener("mouseup", stopDragging);
 window.addEventListener("mousemove", handleDrag);
 
+// Touch Events
+window.addEventListener("touchstart", (event) => {
+    startDragging(event);
+});
+window.addEventListener("touchend", stopDragging);
+window.addEventListener("touchmove", handleTouch);
+
 // Animation Loop
 const renderLoop = () => {
     controls.update();
