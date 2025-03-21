@@ -26,7 +26,7 @@ const loader = new GLTFLoader();
 loader.load("d12.glb", (gltf) => {
     model = gltf.scene;
     const textureLoader = new THREE.TextureLoader();
-    const texturePath = "/space-cruiser-panels2-bl/";
+    const texturePath = "space-cruiser-panels2-bl/";
 
     // Load textures
     const albedoTexture = textureLoader.load(`${texturePath}space-cruiser-panels2_albedo.png`);
