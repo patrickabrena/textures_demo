@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+
 import { Pane } from "tweakpane";
 
 // Create a Three.js scene
@@ -21,17 +22,85 @@ let rotationSpeedY = 0;
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// Load GLB Model
 const loader = new GLTFLoader();
 loader.load("d12.glb", (gltf) => {
     model = gltf.scene;
+    const textureLoader = new THREE.TextureLoader();
+    const texturePath = "public/space-cruiser-panels2-bl/";
+
+    // Load textures
+    const albedoTexture = textureLoader.load(`${texturePath}space-cruiser-panels2_albedo.png`);
+    const aoTexture = textureLoader.load(`${texturePath}space-cruiser-panels2_ao.png`);
+    const metallicTexture = textureLoader.load(`${texturePath}space-cruiser-panels2_metallic.png`);
+    const normalTexture = textureLoader.load(`${texturePath}space-cruiser-panels2_normal-ogl.png`);
+    const roughnessTexture = textureLoader.load(`${texturePath}space-cruiser-panels2_roughness.png`);
+    const displacementTexture = textureLoader.load(`${texturePath}space-cruiser-panels2_height.png`);
+
+
+
+    // Set texture color space and flip Y-axis for textures used for color information
+    albedoTexture.colorSpace = THREE.SRGBColorSpace;
+    aoTexture.colorSpace = THREE.SRGBColorSpace;
+    metallicTexture.colorSpace = THREE.SRGBColorSpace; // Not strictly necessary but good for consistency
+    normalTexture.colorSpace = THREE.SRGBColorSpace; // Not typically needed for normal maps
+    roughnessTexture.colorSpace = THREE.SRGBColorSpace;
+
+    albedoTexture.flipY = true;
+    aoTexture.flipY = true;
+    metallicTexture.flipY = true;
+    normalTexture.flipY = true;
+    roughnessTexture.flipY = true;
+    displacementTexture.flipY = true;
+
+
+    // Set texture repetition (adjust to make the texture smaller)
+    const repeatValue = 8; // Smaller value for better detail
+
+    // Apply repeat settings and set repeat wrapping
+    albedoTexture.wrapS = albedoTexture.wrapT = THREE.RepeatWrapping;
+    aoTexture.wrapS = aoTexture.wrapT = THREE.RepeatWrapping;
+    metallicTexture.wrapS = metallicTexture.wrapT = THREE.RepeatWrapping;
+    normalTexture.wrapS = normalTexture.wrapT = THREE.RepeatWrapping;
+    roughnessTexture.wrapS = roughnessTexture.wrapT = THREE.RepeatWrapping;
+    displacementTexture.wrapS = displacementTexture.wrapT = THREE.RepeatWrapping;
+
+    // Apply repeat settings to textures
+    albedoTexture.repeat.set(repeatValue, repeatValue);
+    aoTexture.repeat.set(repeatValue, repeatValue);
+    normalTexture.repeat.set(repeatValue, repeatValue);
+    roughnessTexture.repeat.set(repeatValue, repeatValue);
+    metallicTexture.repeat.set(repeatValue, repeatValue);
+    displacementTexture.repeat.set(repeatValue, repeatValue);
+
+    // Create material with the loaded textures
+    const material = new THREE.MeshStandardMaterial({
+        map: albedoTexture,
+        aoMap: aoTexture,
+        metalnessMap: metallicTexture,
+        metalness: 0.9,
+        roughness: 0.1,
+        normalMap: normalTexture,
+        roughnessMap: roughnessTexture,
+        aoMapIntensity: 1.3, // Adjusted AO intensity
+        normalMap: normalTexture,
+        displacementMap: displacementTexture,
+        displacementScale: 0,
+        displacementBias: 0,
+        color: new THREE.Color(0x0000ff), // Applying blue color tint
+    emissive: new THREE.Color(0x0000ff), // Optional: make the blue color appear as if it's glowing
+    emissiveIntensity: 0.02 // Adjust the intensity of the emissive color
+    });
+
+    // Apply material to the model
     model.traverse((child) => {
         if (child.isMesh) {
-            child.material = new THREE.MeshStandardMaterial({
-                color: 0x00ff00, roughness: 0.2, metalness: 0.8
-            });
+            child.material = material;
+
+        
         }
     });
+
+    // Create pivot and add model to the scene
     pivot = new THREE.Object3D();
     pivot.add(model);
     scene.add(pivot);
@@ -39,11 +108,11 @@ loader.load("d12.glb", (gltf) => {
 });
 
 // Lighting Setup
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+const ambientLight = new THREE.AmbientLight(0xffffff, 6.9);
 scene.add(ambientLight);
 
-const pointLight = new THREE.PointLight(0xffffff, 25);
-pointLight.position.set(0, 3, 5);
+const pointLight = new THREE.PointLight(0xffffff, 1500);
+pointLight.position.set(0, 0, 9);
 scene.add(pointLight);
 
 // Camera Setup
@@ -70,14 +139,14 @@ window.addEventListener("resize", () => {
 
 // Rotation Speed Settings (Configurable via Tweakpane)
 const rotationConfig = {
-    rotationSpeedX: 0.5,
-    rotationSpeedY: 0.5,
+    rotationSpeedX: 0.69,
+    rotationSpeedY: 0.69,
 };
 
 // Create Tweakpane GUI
 const pane = new Pane();
-pane.addBinding(rotationConfig, "rotationSpeedX", { min: 0.1, max: 0.9, step: 0.01 }).label = "Rotation Speed X";
-pane.addBinding(rotationConfig, "rotationSpeedY", { min: 0.1, max: 0.9, step: 0.01 }).label = "Rotation Speed Y";
+pane.addBinding(rotationConfig, "rotationSpeedX", { min: 0.1, max: 0.9, step: 0.01 }).label = "Friction X";
+pane.addBinding(rotationConfig, "rotationSpeedY", { min: 0.1, max: 0.9, step: 0.01 }).label = "Friction Y";
 
 // Mouse Controls
 const startDragging = (event) => {

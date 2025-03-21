@@ -13,6 +13,7 @@
   "dependencies": {
     "lil-gui": "^0.20.0",
     "three": "^0.174.0",
+    "three-subdivision-modifier": "^1.0.5",
     "tweakpane": "^4.0.5"
   }
 }
